@@ -31,28 +31,31 @@ export default function Gallery({ favourites, toggleFavourite, theme, toggleThem
 
   // 1. Fetch photos from the custom hook
   const { photos, loading, error } = useFetchPhotos();
-
-  // 2. Local state for the search input query
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'favourites'
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   // WHY useCallback is used on handleSearch:
-  // useCallback memoizes the callback instance so that the function reference remains identical
-  // across re-renders (since dependency array is empty). This avoids recreation of the function
-  // on every render, which saves memory and prevents child input components from unnecessarily re-rendering.
   const handleSearch = useCallback((e) => {
     setSearchQuery(e.target.value);
   }, []);
 
   // WHY useMemo is used on filteredPhotos:
-  // Filtering is an O(N) operation. By using useMemo, we cache (memoize) the resulting filtered list.
-  // The filtering logic will only re-execute when either the 'photos' list changes (e.g. initial fetch)
-  // or the 'searchQuery' changes (user types in input). If the parent component re-renders for other reasons
-  // (such as when 'favourites' is updated), the cached list is returned immediately, skipping recalculation.
+  // We compute the filtered list dynamically. The filter logic only runs when 'photos', 'searchQuery',
+  // 'activeTab', or 'favourites' changes. This caches the list across unrelated re-renders.
   const filteredPhotos = useMemo(() => {
-    return photos.filter((photo) =>
-      photo.author.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [photos, searchQuery]);
+    let result = photos;
+    if (activeTab === 'favourites') {
+      result = result.filter((photo) => favourites.includes(photo.id));
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((photo) =>
+        photo.author.toLowerCase().includes(query)
+      );
+    }
+    return result;
+  }, [photos, searchQuery, activeTab, favourites]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
@@ -91,6 +94,30 @@ export default function Gallery({ favourites, toggleFavourite, theme, toggleThem
                 </svg>
               )}
             </button>
+            
+            {/* Favourites Tab Filter Switcher */}
+            <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl border border-slate-200/50 dark:border-white/5 relative w-full sm:w-auto shrink-0 select-none">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all relative z-10 cursor-pointer ${
+                  activeTab === 'all'
+                    ? 'text-indigo-600 dark:text-white bg-white dark:bg-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setActiveTab('favourites')}
+                className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-extrabold transition-all relative z-10 cursor-pointer ${
+                  activeTab === 'favourites'
+                    ? 'text-indigo-600 dark:text-white bg-white dark:bg-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                }`}
+              >
+                Favourites ({favourites.length})
+              </button>
+            </div>
             
             <div className="w-full sm:w-72">
               {/* Glassmorphic Search Input */}
@@ -173,8 +200,96 @@ export default function Gallery({ favourites, toggleFavourite, theme, toggleThem
               photo={photo}
               isFavourite={favourites.includes(photo.id)}
               onToggle={toggleFavourite}
+              onSelect={setSelectedPhoto}
             />
           ))}
+        </div>
+      )}
+
+      {/* Advanced Lightbox Modal */}
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md transition-all duration-300 p-4 animate-fadeIn"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div 
+            className="relative max-w-4xl w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-white/5 flex flex-col md:flex-row transform transition-all duration-300 scale-95 md:scale-100 hover:scale-101"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image side */}
+            <div className="relative md:w-3/5 bg-slate-950 aspect-video md:aspect-auto md:min-h-[450px] flex items-center justify-center">
+              <img 
+                src={`https://picsum.photos/id/${selectedPhoto.id}/1200/800`}
+                alt={selectedPhoto.author}
+                className="w-full h-full object-cover max-h-[60vh] md:max-h-[80vh]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Info side */}
+            <div className="md:w-2/5 p-8 flex flex-col justify-between">
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedPhoto(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                aria-label="Close modal"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="space-y-6">
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest font-extrabold text-indigo-500">Photographer</span>
+                  <h2 translate="no" className="notranslate text-2xl font-black text-slate-800 dark:text-white mt-1">
+                    {selectedPhoto.author}
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200/50 dark:border-white/5">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">Image ID</span>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">{selectedPhoto.id}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200/50 dark:border-white/5">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">Dimensions</span>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">{selectedPhoto.width} × {selectedPhoto.height}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-3">
+                {/* Favourite Toggle Button */}
+                <button
+                  onClick={() => toggleFavourite(selectedPhoto.id)}
+                  className={`w-full py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer border ${
+                    favourites.includes(selectedPhoto.id)
+                      ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20'
+                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white border-transparent'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={favourites.includes(selectedPhoto.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  </svg>
+                  {favourites.includes(selectedPhoto.id) ? 'Remove from Favourites' : 'Add to Favourites'}
+                </button>
+
+                {/* Download Button */}
+                <a
+                  href={`https://picsum.photos/id/${selectedPhoto.id}/${selectedPhoto.width}/${selectedPhoto.height}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 px-4 rounded-xl font-bold text-sm bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/20"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Original
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

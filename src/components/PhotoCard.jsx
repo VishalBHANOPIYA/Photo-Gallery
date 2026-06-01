@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 
-export default function PhotoCard({ photo, isFavourite, onToggle }) {
+export default function PhotoCard({ photo, isFavourite, onToggle, onSelect }) {
   const cardRef = useRef(null);
   const [transformStyle, setTransformStyle] = useState('');
   const [isLiked, setIsLiked] = useState(false);
@@ -50,6 +50,7 @@ export default function PhotoCard({ photo, isFavourite, onToggle }) {
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onClick={() => onSelect(photo)}
         style={{ 
           transform: transformStyle,
           transition: transformStyle ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out'
@@ -75,7 +76,10 @@ export default function PhotoCard({ photo, isFavourite, onToggle }) {
 
           {/* Heart/Favourite Button overlay with micro-animation */}
           <button
-            onClick={handleLike}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike();
+            }}
             className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md shadow-lg transition-all duration-300 ${
               isFavourite 
                 ? 'bg-red-500/15 border border-red-500/30 text-red-500' 
@@ -111,6 +115,7 @@ export default function PhotoCard({ photo, isFavourite, onToggle }) {
               href={photo.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 hover:underline transition-colors duration-200"
             >
               View Info
