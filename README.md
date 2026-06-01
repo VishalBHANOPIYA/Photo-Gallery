@@ -17,8 +17,10 @@ A responsive React photo gallery that fetches high-quality images from the Picsu
 3. **Robust Request Management**: Integrates clean `try / catch / finally` blocks with `async / await` syntax to handle API errors and loading states.
 4. **State Management Reducer**: Manages the list of favourite photos using a clean `useReducer` pattern.
 5. **Persistence**: Syncs user favourites to `localStorage` and loads them efficiently on refresh via a lazy initializer function.
-6. **Optimized Filtering**: Uses `useMemo` to filter photos by author, preventing expensive array operations on unrelated re-renders.
+6. **Optimized Filtering**: Uses `useMemo` to filter photos by author and selected tab (All vs Favourites), preventing expensive array operations on unrelated re-renders.
 7. **Stable Callbacks**: Employs `useCallback` on the input search handler to maintain a stable function reference.
+8. **Interactive Lightbox Modal**: Click on any card to open a premium details view with photographer info, dimension metadata, download trigger, and dynamic smooth animations.
+9. **Animated Tab Control**: Effortlessly switch between "All Photos" and "Favourites" view modes in a beautiful sliding segment bar.
 
 ---
 
