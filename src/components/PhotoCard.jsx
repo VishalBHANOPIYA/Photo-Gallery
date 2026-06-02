@@ -45,7 +45,7 @@ export default function PhotoCard({ photo, isFavourite, onToggle, onSelect }) {
   };
 
   return (
-    <div className="card-perspective w-full">
+    <div className="card-perspective w-full animate-cardEntry">
       <div
         ref={cardRef}
         onMouseMove={handleMouseMove}
@@ -53,7 +53,7 @@ export default function PhotoCard({ photo, isFavourite, onToggle, onSelect }) {
         onClick={() => onSelect(photo)}
         style={{ 
           transform: transformStyle,
-          transition: transformStyle ? 'transform 0.1s ease-out' : 'transform 0.5s ease-out'
+          transition: transformStyle ? 'transform 0.05s ease-out' : 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
         }}
         className={`glass-card rounded-2xl overflow-hidden relative group cursor-pointer ${
           isFavourite 

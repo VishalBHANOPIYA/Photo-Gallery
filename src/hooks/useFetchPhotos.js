@@ -1,48 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-// Custom hook to fetch 30 photos on mount
+// Custom hook to fetch photos with pagination support
 export function useFetchPhotos() {
-  // 1. Define three useState values with default values
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  // 2. Run the fetch operation once when the component mounts
   useEffect(() => {
-    // Async function inside useEffect to handle the API request
     const fetchPhotos = async () => {
       try {
-        // Set loading to true before starting the request
-        setLoading(true);
+        if (page === 1) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
 
-        // Fetch photos from the Picsum API
-        const response = await fetch('https://picsum.photos/v2/list?limit=30');
+        const response = await fetch(`https://picsum.photos/v2/list?page=${page}&limit=30`);
 
-        // If response.ok is false, throw an Error so it lands in the catch block
         if (!response.ok) {
           throw new Error(`Failed to fetch photos (HTTP status: ${response.status})`);
         }
 
-        // Parse JSON response body
         const data = await response.json();
+        
+        if (data.length < 30) {
+          setHasMore(false);
+        }
 
-        // Store the successfully fetched array of photos
-        setPhotos(data);
+        setPhotos((prev) => (page === 1 ? data : [...prev, ...data]));
       } catch (err) {
-        // Store a readable string in error state on failure
         setError(err.message || 'An error occurred while fetching photos');
       } finally {
-        // Set loading to false when the request completes, whether it succeeds or fails
         setLoading(false);
+        setLoadingMore(false);
       }
     };
 
-    // Execute the async function
     fetchPhotos();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [page]);
 
-  // 3. Return the state values as an object
-  return { photos, loading, error };
+  const loadMore = useCallback(() => {
+    if (!loading && !loadingMore && hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  }, [loading, loadingMore, hasMore]);
+
+  return { photos, loading, loadingMore, error, loadMore, hasMore };
 }
 
 export default useFetchPhotos;
